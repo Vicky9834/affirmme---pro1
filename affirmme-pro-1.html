@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0A1628" />
+<link rel="manifest" href="manifest.json" />
+<title>AffirmMe Pro</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:Arial,sans-serif;
+background:#08101E;
+color:#F5E8D8;
+max-width:430px;
+margin:0 auto;
+padding-bottom:100px;
+}
+
+.screen{
+display:none;
+padding:20px;
+min-height:100vh;
+}
+
+.screen.active{
+display:block;
+}
+
+.title{
+font-size:42px;
+color:#D4AF73;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+.card{
+background:#102344;
+border:1px solid #1E3760;
+border-radius:20px;
+padding:20px;
+margin-bottom:16px;
+}
+
+.topic-card{
+background:#102344;
+border:1px solid #1E3760;
+border-radius:16px;
+padding:16px;
+margin-bottom:12px;
+cursor:pointer;
+}
+
+.topic-card:hover{
+border-color:#D4AF73;
+}
+
+.affirm-text{
+font-size:24px;
+line-height:1.5;
+margin-bottom:10px;
+}
+
+.scripture{
+font-size:13px;
+color:#D4AF73;
+}
+
+.btn{
+width:100%;
+padding:14px;
+border:none;
+border-radius:14px;
+background:#D4AF73;
+color:#08101E;
+font-weight:bold;
+margin-top:14px;
+font-size:15px;
+}
+
+.nav{
+position:fixed;
+bottom:0;
+left:50%;
+transform:translateX(-50%);
+width:100%;
+max-width:430px;
+background:#08101E;
+border-top:1px solid #1E3760;
+display:flex;
+justify-content:space-around;
+padding:10px 0;
+}
+
+.nav button{
+background:none;
+border:none;
+color:#888;
+font-size:14px;
+}
+
+.nav button.active{
+color:#D4AF73;
+font-weight:bold;
+}
+
+.audio-btn{
+width:80px;
+height:80px;
+border-radius:50%;
+background:#D4AF73;
+border:none;
+font-size:28px;
+margin:20px auto;
+display:block;
+}
+
+textarea{
+width:100%;
+min-height:120px;
+background:#08101E;
+border:1px solid #1E3760;
+border-radius:14px;
+padding:14px;
+color:white;
+}
+</style>
+</head>
+<body>
+
+<div id="screen-home" class="screen active">
+<h1 class="title">AffirmMe</h1>
+
+<div class="card">
+<p class="affirm-text" id="homeAffirm"></p>
+<p class="scripture" id="homeVerse"></p>
+<button class="btn" onclick="go('daily')">Daily Affirmation</button>
+</div>
+
+<div id="homeTopics"></div>
+</div>
+
+<div id="screen-topics" class="screen">
+<h1 class="title">Topics</h1>
+<div id="topicsList"></div>
+</div>
+
+<div id="screen-detail" class="screen">
+<button class="btn" onclick="go('topics')">Back</button>
+
+<div class="card">
+<h2 id="detailTitle"></h2>
+<p class="scripture" id="detailVerse"></p>
+</div>
+
+<div id="detailList"></div>
+</div>
+
+<div id="screen-listen" class="screen">
+<h1 class="title">Audio</h1>
+
+<div class="card">
+<p class="affirm-text" id="audioText"></p>
+<p class="scripture" id="audioVerse"></p>
+<button class="audio-btn" onclick="toggleAudio()" id="playBtn">▶</button>
+</div>
+</div>
+
+<div id="screen-daily" class="screen">
+<h1 class="title">Daily</h1>
+<div id="dailyList"></div>
+</div>
+
+<div id="screen-more" class="screen">
+<h1 class="title">More</h1>
+
+<div class="card">
+<textarea id="userSituation" placeholder="Describe your situation..."></textarea>
+<button class="btn" onclick="generateAffirmation()">Generate Affirmation</button>
+</div>
+
+<div class="card" id="generatedCard" style="display:none;">
+<p class="affirm-text" id="generatedAffirmation"></p>
+</div>
+</div>
+
+<div class="nav">
+<button id="nav-home" class="active" onclick="go('home')">Home</button>
+<button id="nav-topics" onclick="go('topics')">Topics</button>
+<button onclick="go('listen')">Audio</button>
+<button id="nav-daily" onclick="go('daily')">Daily</button>
+<button id="nav-more" onclick="go('more')">More</button>
+</div>
+
+<script>
+
+const DATA = [
+{
+topic:'Peace',
+verse:'John 14:27',
+affirmations:[
+'I walk in peace every day.',
+'God calms every storm in my life.',
+'I reject fear and embrace peace.'
+]
+},
+{
+topic:'Healing',
+verse:'Isaiah 53:5',
+affirmations:[
+'Healing flows through my body.',
+'I become stronger daily.',
+'God restores every broken place in me.'
+]
+},
+{
+topic:'Confidence',
+verse:'Philippians 4:13',
+affirmations:[
+'I can do all things through Christ.',
+'I walk boldly into my future.',
+'I am strong courageous and confident.'
+]
+}
+];
+
+let currentTopic = 0;
+let speaking = false;
+
+function go(screen){
+
+document.querySelectorAll('.screen').forEach(item=>{
+item.classList.remove('active');
+});
+
+const target = document.getElementById('screen-' + screen);
+
+if(target){
+target.classList.add('active');
+}
+
+document.querySelectorAll('.nav button').forEach(btn=>{
+btn.classList.remove('active');
+});
+
+const navMap = {
+home:'nav-home',
+topics:'nav-topics',
+daily:'nav-daily',
+more:'nav-more'
+};
+
+if(navMap[screen]){
+document.getElementById(navMap[screen]).classList.add('active');
+}
+}
+
+function renderTopics(){
+
+const homeContainer = document.getElementById('homeTopics');
+const topicsContainer = document.getElementById('topicsList');
+
+homeContainer.innerHTML = '';
+topicsContainer.innerHTML = '';
+
+DATA.forEach((item,index)=>{
+
+const html = `
+<div class="topic-card" onclick="openTopic(${index})">
+<h3>${item.topic}</h3>
+<p class="scripture">${item.verse}</p>
+</div>
+`;
+
+homeContainer.innerHTML += html;
+topicsContainer.innerHTML += html;
+});
+}
+
+function openTopic(index){
+
+currentTopic = index;
+
+const topic = DATA[index];
+
+document.getElementById('detailTitle').innerText = topic.topic;
+document.getElementById('detailVerse').innerText = topic.verse;
+
+const container = document.getElementById('detailList');
+container.innerHTML = '';
+
+topic.affirmations.forEach(item=>{
+container.innerHTML += `
+<div class="card">
+<p class="affirm-text">${item}</p>
+<p class="scripture">${topic.verse}</p>
+</div>
+`;
+});
+
+go('detail');
+}
+
+function setupHome(){
+
+document.getElementById('homeAffirm').innerText = DATA[0].affirmations[0];
+document.getElementById('homeVerse').innerText = DATA[0].verse;
+}
+
+function setupDaily(){
+
+const topic = DATA[0];
+const container = document.getElementById('dailyList');
+
+container.innerHTML = '';
+
+topic.affirmations.forEach(item=>{
+container.innerHTML += `
+<div class="card">
+<p class="affirm-text">${item}</p>
+<p class="scripture">${topic.verse}</p>
+</div>
+`;
+});
+}
+
+function setupAudio(){
+
+document.getElementById('audioText').innerText = DATA[0].affirmations[0];
+document.getElementById('audioVerse').innerText = DATA[0].verse;
+}
+
+function toggleAudio(){
+
+const text = DATA[currentTopic].affirmations[0];
+
+if(speaking){
+window.speechSynthesis.cancel();
+speaking = false;
+document.getElementById('playBtn').innerText = '▶';
+return;
+}
+
+const speech = new SpeechSynthesisUtterance(text);
+
+speech.onend = ()=>{
+speaking = false;
+document.getElementById('playBtn').innerText = '▶';
+};
+
+window.speechSynthesis.speak(speech);
+speaking = true;
+document.getElementById('playBtn').innerText = '❚❚';
+}
+
+function generateAffirmation(){
+
+const input = document.getElementById('userSituation').value;
+
+if(!input.trim()){
+alert('Please describe your situation first.');
+return;
+}
+
+const affirmation = 'God is guiding me strengthening me and opening new doors for my future every day.';
+
+document.getElementById('generatedCard').style.display = 'block';
+document.getElementById('generatedAffirmation').innerText = affirmation;
+}
+
+if('serviceWorker' in navigator){
+window.addEventListener('load',()=>{
+navigator.serviceWorker.register('service-worker.js');
+});
+}
+
+window.onload = ()=>{
+renderTopics();
+setupHome();
+setupDaily();
+setupAudio();
+};
+
+</script>
+</body>
+</html>
